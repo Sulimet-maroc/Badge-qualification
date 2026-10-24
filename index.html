@@ -88,6 +88,7 @@ td select{padding:5px 8px;font-size:14px}
 .err{display:inline-block;font-size:12px;font-weight:600;color:var(--no);background:transparent;box-shadow:inset 0 0 0 1px rgba(197,15,31,.5);border-radius:4px;padding:2px 8px}
 p.hint .err,p.hint .ok,#pdfMsg .err,#pdfMsg .ok,#sendOut .err{box-shadow:none;background:none;padding:0;font-size:13px}
 #pdfMsg .ok,p.hint .ok{color:var(--ok)}
+#status:empty,#pdfMsg:empty{display:none}
 #status{font-size:13.5px;color:var(--ink);background:var(--bluesoft);border-radius:6px;padding:7px 12px}
 .ic{width:18px;height:18px;flex:none;vertical-align:-4px;margin-right:7px}
 button{display:inline-flex;align-items:center;justify-content:center}
@@ -178,7 +179,7 @@ button.wa:hover{background:#17703d;border-color:#17703d}
 }
 /* ---------- Fluent overrides ---------- */
 .typebox{background:var(--potsoft)!important;border:0!important;border-radius:8px!important;padding:6px 12px!important}
-.sendrow{background:var(--oksoft)!important;border:0!important;border-radius:8px!important;padding:10px 12px!important}
+.sendrow{background:none!important;border:0!important;padding:0!important}
 button.wa{background:var(--ok)!important;color:#fff!important;box-shadow:none!important;font-family:var(--f-body)!important;font-size:14px!important;font-weight:600!important;letter-spacing:0!important;text-transform:none!important}
 button.wa:hover{background:#0e6b0e!important}
 .linkbox{font-family:Consolas,monospace!important}
@@ -246,21 +247,18 @@ button.wa:hover{background:#0e6b0e!important}
 
 <section class="panel">
   <h2>1. Coller Matricule + Nom</h2>
-  <p class="hint">Depuis Excel, copier 2 colonnes : <b>Matricule | Nom Prénom</b>, et coller ici. Sur téléphone : taper une personne par ligne, ex. <b>4621 EL JEBBARI MOHAMED</b>. <b>Retour du terrain</b> (message WhatsApp) : le coller ici aussi, tout se remplit.</p>
   <textarea id="paste" placeholder="4621	EL JEBBARI MOHAMED&#10;3506	AMAHROUCH F.ZAHRAE&#10;5073	RAFIK EZZARFI" oninput="buildList()"></textarea>
   <div class="row">
     <label class="typebox"><b>Type de carte :</b> <select id="ctype" onchange="setType()"><option value="Q">Qualification (1 an)</option><option value="F">Formation en cours (1 mois)</option></select></label>
     <label>Date expiration : <input type="date" id="defDate" onchange="buildList()"></label>
     <label><b>Projet pour toute la promo :</b> <select id="defProj" onchange="setAllProj(this.value)"><option value="">— choisir —</option></select></label>
   </div>
-  <div class="row sendrow"><button class="wa" onclick="sendToField()"><svg class="ic" viewBox="0 0 20 20" aria-hidden="true"><rect x="5.5" y="2.5" width="9" height="15" rx="1.8" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M9 15h2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>Envoyer au terrain (WhatsApp)</button>
-    <span class="hint" style="margin:0">Le chef d'équipe ouvre le lien sur son téléphone, choisit projet + poste, et vous renvoie la liste.</span></div>
+  <div class="row sendrow"><button class="wa" onclick="sendToField()"><svg class="ic" viewBox="0 0 20 20" aria-hidden="true"><rect x="5.5" y="2.5" width="9" height="15" rx="1.8" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M9 15h2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>Envoyer au terrain (WhatsApp)</button></div>
   <div id="sendOut"></div>
 </section>
 
 <section class="panel">
   <h2>2. Choisir le poste</h2>
-  <p class="hint">Pour chaque personne : le projet, puis le poste dans la liste. <b>+</b> pour ajouter un 2ᵉ poste.</p>
   <p class="hint" id="status"></p>
   <table><thead><tr><th>Matricule</th><th>Nom</th><th>Projet</th><th style="width:38%">Poste(s)</th><th>État</th></tr></thead><tbody id="list"></tbody></table>
   <div class="out">
@@ -271,7 +269,8 @@ button.wa:hover{background:#0e6b0e!important}
       <button class="pdfb mailb" onclick="pdfAction('email')"><svg class="ic" viewBox="0 0 20 20" aria-hidden="true"><rect x="2.8" y="4.5" width="14.4" height="11" rx="1.8" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M3.5 5.5l6.5 5 6.5-5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>Envoyer par email</button>
       <button onclick="window.print()"><svg class="ic" viewBox="0 0 20 20" aria-hidden="true"><path d="M6 7V3h8v4M6 14H4a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1h-2M6 11h8v6H6z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>Imprimer directement</button>
     </div>
-    <p class="hint" id="pdfMsg" style="margin:4px 0 0">8 badges par page A4. Le PDF peut être envoyé à la personne qui imprime.</p>
+    <div class="row outbtns listrow"><button class="wab" onclick="sendList()"><svg class="ic" viewBox="0 0 20 20" aria-hidden="true"><path d="M7 5h10M7 10h10M7 15h10" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><circle cx="3.6" cy="5" r="1.1" fill="currentColor"/><circle cx="3.6" cy="10" r="1.1" fill="currentColor"/><circle cx="3.6" cy="15" r="1.1" fill="currentColor"/></svg>Envoyer la liste (WhatsApp)</button></div>
+    <p class="hint" id="pdfMsg" style="margin:4px 0 0"></p>
   </div>
 </section>
 
@@ -483,6 +482,23 @@ async function pdfAction(kind){
     }
   }catch(e){ msg.innerHTML=`<span class="err">${e&&e.msg?e.msg:'Erreur PDF. Utilisez "Imprimer directement".'}</span>`; }
   finally{ btns.forEach(b=>b.disabled=false); }
+}
+
+// ---------- Send the list (for the matrix) as a WhatsApp message ----------
+function listText(){
+  const ok=ppl.filter(p=>!errOf(p));
+  const t=document.getElementById("ctype").value, d=document.getElementById("defDate").value;
+  const lines=ok.map(p=>{ const card=CARDS[p.s.proj], all=card.rows.flat();
+    const codes=p.s.postes.filter(Boolean).map(Number).sort((a,b)=>a-b).map(j=>label(all[j])).join(", ");
+    return [p.mat,p.nom,p.s.proj,codes].join(" | "); });
+  return {n:ok.length, text:"Retour terrain\n#BADGES "+t+" "+d+"\n"+lines.join("\n")};
+}
+function sendList(){
+  const msg=document.getElementById("pdfMsg"), L=listText();
+  if(!L.n){ msg.innerHTML='<span class="err">Aucune personne prête à envoyer.</span>'; return; }
+  if(isPhone() && navigator.share){ navigator.share({text:L.text}).catch(()=>{}); }
+  else window.open("https://wa.me/?text="+encodeURIComponent(L.text),"_blank");
+  msg.innerHTML=`<span class="ok">Liste de ${L.n} personne(s) prête : choisissez le groupe WhatsApp.</span>`;
 }
 
 // Phone preview: scale each badge to the screen width (crisp, one per row)
