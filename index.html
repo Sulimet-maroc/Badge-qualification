@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
 <title>Sulimet · Badges de qualification</title>
 <style>
 /* Look: "Corporate Fluent" (same as the Sulimet CV tool, style C). Soft drifting colour background,
@@ -339,7 +340,7 @@ const b64e=o=>btoa(unescape(encodeURIComponent(JSON.stringify(o)))).replace(/\+/
 const b64d=s=>JSON.parse(decodeURIComponent(escape(atob(s.replace(/-/g,"+").replace(/_/g,"/")))));
 
 // Online address of this tool (to fill once it is on GitHub Pages)
-const ONLINE_URL = "";
+const ONLINE_URL = "https://sulimet-maroc.github.io/Badge-qualification/";
 function toolUrl(){ return /^https?:/.test(location.protocol) ? location.origin+location.pathname : ONLINE_URL; }
 
 function sendToField(){
