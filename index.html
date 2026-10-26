@@ -97,6 +97,8 @@ button{display:inline-flex;align-items:center;justify-content:center}
 .outbtns{margin:8px 0 0}
 button.wab{color:var(--ok)} button.wab:hover{background:var(--oksoft)}
 button.mailb{color:var(--blue)} button.mailb:hover{background:var(--bluesoft)}
+/* iPhone zooms on fields under 16px: keep them at 16px on phones */
+@media screen and (max-width:700px){ input,select,textarea,td select{font-size:16px!important} }
 @media screen and (max-width:700px){ .row.outbtns button{flex:1 1 100%!important;justify-content:flex-start;padding:12px 16px} }
 .plabel{font-size:12.5px;font-weight:600;color:var(--muted);margin:4px 0 8px;text-align:center}
 .empty{color:var(--muted);font-size:13.5px;text-align:center;padding:26px;border:1.5px dashed rgba(15,108,189,.35);border-radius:var(--r)}
@@ -178,7 +180,8 @@ button.wa:hover{background:#17703d;border-color:#17703d}
   #cards .badge{box-shadow:0 2px 10px rgba(30,60,120,.12)}
 }
 /* ---------- Fluent overrides ---------- */
-.typebox{background:var(--potsoft)!important;border:0!important;border-radius:8px!important;padding:6px 12px!important}
+.typebox{background:rgba(16,124,16,.12)!important;border:1px solid rgba(16,124,16,.18)!important;border-radius:8px!important;padding:6px 12px!important;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);transition:background .2s,border-color .2s}
+.typebox.form{background:rgba(242,183,5,.18)!important;border-color:rgba(242,183,5,.35)!important}
 .sendrow{background:none!important;border:0!important;padding:0!important}
 button.wa{background:var(--ok)!important;color:#fff!important;box-shadow:none!important;font-family:var(--f-body)!important;font-size:14px!important;font-weight:600!important;letter-spacing:0!important;text-transform:none!important}
 button.wa:hover{background:#0e6b0e!important}
@@ -297,6 +300,22 @@ const CARDS = {
     ["S/E","TPM","SF-PR"] ]}
 };
 const PER_PAGE = 8;
+// Trainings that come automatically with some stations (from the Training Center TAC list).
+// station code -> training codes added on the same card. Trainings are NOT stations (not in the matrix).
+const TRAININGS = {
+  "VALEO": [ { with:["MEC","ELE"],         add:["TPM","PSP"] } ],
+  "P2":    [ { with:["MEC","LUM","TWI"],   add:["TPM"] } ],
+  "JST":   [ { with:["DM15","ELE","K477"], add:["TPM","PSP"] },
+             { with:["FET","S/E"],         add:["SF-PR"] } ]
+};
+const TRAINING_CODES=new Set(["TPM","PSP","SF-PR"]);
+// index list of trainings to add for a station index on a card
+function trainingsFor(proj, j){
+  const rules=TRAININGS[proj], card=CARDS[proj]; if(!rules||!card) return [];
+  const all=card.rows.flat().map(c=>label(c)), out=[];
+  rules.forEach(t=>{ if(t.with.includes(all[j])) t.add.forEach(code=>{ const x=all.indexOf(code); if(x>=0&&!out.includes(x)) out.push(x); }); });
+  return out;
+}
 const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const label=c=>c.replace("\n"," ");
 const projOpts=sel=>`<option value="">—</option>`+Object.keys(CARDS).map(k=>`<option ${k===sel?"selected":""}>${k}</option>`).join("");
@@ -367,7 +386,7 @@ function startTerrain(){
 }
 function tSave(){ try{ localStorage.setItem(TKEY,JSON.stringify(T)); }catch(e){} }
 function tProj(i,v){ const r=T.p[i]; if(r[2]!==v){ r[2]=v; r[3]=[]; } tSave(); drawTerrain(); }
-function tCode(i,j){ const r=T.p[i], k=r[3].indexOf(j); if(k>=0) r[3].splice(k,1); else r[3].push(j); tSave(); drawTerrain(); }
+function tCode(i,j){ const r=T.p[i], k=r[3].indexOf(j); if(k>=0) r[3].splice(k,1); else { r[3].push(j); trainingsFor(r[2],j).forEach(t=>{ if(!r[3].includes(t)) r[3].push(t); }); } tSave(); drawTerrain(); }
 function drawTerrain(){
   const done=T.p.filter(r=>r[2]&&r[3].length).length;
   document.getElementById("terrain").innerHTML=`
@@ -394,12 +413,17 @@ function confirmSend(n){ return window.confirm(n+" personne(s) sans poste. Envoy
 
 function setAllProj(v){ ppl.forEach(p=>{ if(p.s.proj!==v){ p.s.proj=v; p.s.postes=[""]; } }); drawTable(); renderCards(); }
 function setProj(i,v){ const s=ppl[i].s; s.proj=v; s.postes=[""]; drawRow(i); renderCards(); }
-function setPoste(i,k,v){ ppl[i].s.postes[k]=v; drawRow(i); renderCards(); }
+function setPoste(i,k,v){ const s=ppl[i].s; s.postes[k]=v;
+  if(v!==""){ trainingsFor(s.proj,Number(v)).forEach(j=>{ if(!s.postes.includes(String(j))){ const e=s.postes.indexOf(""); if(e>=0) s.postes[e]=String(j); else s.postes.push(String(j)); } }); }
+  drawRow(i); renderCards(); }
 function addPoste(i){ ppl[i].s.postes.push(""); drawRow(i); }
 function delPoste(i,k){ const s=ppl[i].s; s.postes.splice(k,1); if(!s.postes.length) s.postes=[""]; drawRow(i); renderCards(); }
 
 function errOf(p){
-  return !p.mat?"Matricule vide" : !p.nom?"Nom vide" : !p.s.proj?"Choisir le projet"
+  return !p.mat?"Matricule vide"
+       : !/^\d+$/.test(p.mat)?"Matricule invalide (chiffres seulement)"
+       : ppl.filter(q=>q.mat===p.mat).length>1?"Matricule en double"
+       : !p.nom?"Nom vide" : !p.s.proj?"Choisir le projet"
        : !p.s.postes.some(Boolean)?"Choisir le poste" : !p.date?"Date manquante" : "";
 }
 function rowHTML(p){
@@ -414,7 +438,8 @@ function rowHTML(p){
     <td><div class="postes">${sels}${card?`<button class="sm" title="Ajouter un poste" onclick="addPoste(${i})">+</button>`:""}</div></td>
     <td>${e?`<span class="err">${e}</span>`:'<span class="ok">OK</span>'}</td>`;
 }
-function drawTable(){ document.getElementById("list").innerHTML=ppl.map(p=>`<tr id="r${p.idx}" class="${errOf(p)?"badr":"okr"}">${rowHTML(p)}</tr>`).join(""); }
+function drawTable(){ try{ paintType(); }catch(e){}
+  document.getElementById("list").innerHTML=ppl.map(p=>`<tr id="r${p.idx}" class="${errOf(p)?"badr":"okr"}">${rowHTML(p)}</tr>`).join(""); }
 function drawRow(i){ const tr=document.getElementById("r"+i); if(tr){ tr.innerHTML=rowHTML(ppl[i]); tr.className=errOf(ppl[i])?"badr":"okr"; } }
 
 function badge(p){
@@ -526,8 +551,9 @@ function renderCards(){
 // Default expiry: qualification = +1 year, training = +1 month
 function defaultDate(){ const d=new Date(); if(document.getElementById("ctype").value==="F") d.setMonth(d.getMonth()+1); else d.setFullYear(d.getFullYear()+1);
   document.getElementById("defDate").value=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; }
-function setType(){ defaultDate(); buildList(); }
-if(!startTerrain()){ defaultDate(); buildList(); }
+function setType(){ paintType(); defaultDate(); buildList(); }
+function paintType(){ const t=document.getElementById("ctype"); t.closest(".typebox").classList.toggle("form",t.value==="F"); }
+if(!startTerrain()){ defaultDate(); buildList(); paintType(); }
 </script>
 </body>
 </html>
