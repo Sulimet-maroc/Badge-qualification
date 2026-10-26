@@ -107,34 +107,38 @@ button.mailb{color:var(--blue)} button.mailb:hover{background:var(--bluesoft)}
 
 /* ---------- Cards: 8 per A4 (2 x 4) ---------- */
 .page{display:grid;grid-template-columns:repeat(2,96mm);grid-auto-rows:68mm;gap:2mm;justify-content:center;margin:0 auto 6mm}
-.badge{width:96mm;height:68mm;border:.7mm solid #000;background:#fff;position:relative;padding:2mm 1.5mm 1mm;font-family:Arial,sans-serif;font-weight:bold;overflow:hidden;display:flex;flex-direction:column}
-.b-top{display:flex;height:21mm;flex:none}
-.b-photo{width:22mm;height:19mm;border:.5mm solid #000;margin:1mm 0 0 2.5mm;flex:none}
-.b-id{flex:1;padding:1.2mm 0 0 3.5mm;font-size:9pt;min-width:0}
-.b-id div{height:4.6mm;white-space:nowrap;display:flex}
-.b-id .l{color:var(--red);width:26mm;flex:none}
-.b-id .v{flex:1;text-align:center;overflow:hidden;text-overflow:ellipsis}
-.b-id .name{font-size:8.5pt}
-.b-id .gap{height:2.2mm}
-.b-id .band{background:#FFC000;color:#000;justify-content:center;font-size:8.5pt;margin:.3mm -1.5mm .4mm -2mm;height:4.4mm;align-items:center}
-.typebox{background:var(--potsoft);border:1px solid var(--w-yellow);border-left:5px solid var(--w-yellow);border-radius:2px;padding:6px 10px}
-.b-T{position:absolute;right:2.5mm;top:16.5mm;font-size:10pt}
-.b-line{border-top:.6mm solid var(--line-b);margin:0 1.5mm .8mm}
-.b-leg{font-size:7pt;display:flex;gap:5mm;padding-left:6mm;margin-bottom:.6mm;align-items:center}
-.b-leg .lg{display:flex;align-items:center;gap:1.2mm}
-.b-leg i{display:block;flex:none}
-.b-rows{flex:1;display:flex;flex-direction:column;justify-content:space-evenly;padding-bottom:3mm}
-.b-grid{display:grid;padding:0 .3mm}
-.b-item{display:flex;flex-direction:column;align-items:center;font-size:6.6pt;line-height:1.05;min-width:0}
-.b-lab{white-space:pre-line;text-align:center;min-height:2.8mm}
-.b-marks{display:flex;flex-direction:column;align-items:center;gap:.5mm;margin-top:.5mm}
-.sq{width:2.9mm;height:2.9mm;border:.4mm solid #000;position:relative}
-.sq.on::before,.sq.on::after{content:"";position:absolute;left:50%;top:50%;width:3.6mm;height:.5mm;background:#000}
-.sq.on::before{transform:translate(-50%,-50%) rotate(45deg)}
-.sq.on::after{transform:translate(-50%,-50%) rotate(-45deg)}
-.ci{width:3mm;height:3mm;border:.4mm solid #000;border-radius:50%;position:relative}
-.ci.on{background:#000}
-.b-ref{position:absolute;right:2.5mm;bottom:1mm;font-size:4.5pt;font-weight:normal}
+/* Badge IQ-RH-179 — rounded look: same layout, Sulimet logo instead of the T */
+.badge{width:96mm;height:68mm;box-sizing:border-box;border:.45mm solid #2b2f36;border-radius:3.2mm;background:#fff;padding:2.4mm 2.6mm 1.4mm;display:flex;flex-direction:column;position:relative;font-family:"Inter Tight","Segoe UI",Arial,sans-serif;color:#1b1f24;overflow:hidden}
+.n-top{display:flex;gap:3.4mm;height:19.5mm;flex:none}
+.n-photo{width:15.5mm;height:19mm;border:.35mm solid #c9cdd3;border-radius:1.8mm;background:#f4f5f7;display:grid;place-items:center;flex:none;overflow:hidden}
+.n-photo span{font-size:4.6pt;letter-spacing:.3mm;color:#a6abb3;font-weight:600}
+.n-photo img{width:100%;height:100%;object-fit:cover;display:block}
+.n-id{flex:1;display:flex;flex-direction:column;justify-content:space-between;padding:.4mm 0;min-width:0}
+.n-f{display:flex;flex-direction:column;line-height:1.05;min-width:0}
+.n-l{font-size:5.2pt;font-weight:600;letter-spacing:.25mm;text-transform:uppercase;color:#c8102e}
+.n-v{font-size:9pt;font-weight:700;margin-top:.3mm;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.n-v.mono{font-variant-numeric:tabular-nums;letter-spacing:.15mm}
+.n-logo{width:5mm;height:6mm;flex:none;margin-top:.2mm}
+.n-logo svg{width:100%;height:100%;display:block}
+.n-line{height:.5mm;border-radius:.3mm;background:#a33a00;margin:1.8mm 0 1.2mm;flex:none}
+.n-leg{display:flex;gap:4.5mm;align-items:center;font-size:6pt;font-weight:600;color:#4a5059;flex:none}
+.n-leg span{display:flex;align-items:center;gap:1.2mm}
+.n-band{flex:none;margin:1.6mm -2.6mm 0;height:5.2mm;background:#ffc000;color:#1b1f24;display:flex;align-items:center;justify-content:center;font-size:8.4pt;font-weight:700;letter-spacing:.45mm;text-transform:uppercase}
+.badge.form .n-line{margin-top:1.4mm}
+.n-leg b{margin-left:auto;font-size:6.2pt;letter-spacing:.3mm;color:#fff;background:#2b2f36;border-radius:1mm;padding:.3mm 1.6mm}
+.n-rows{flex:1;display:flex;flex-direction:column;justify-content:space-evenly;padding-bottom:2.2mm}
+.n-grid{display:grid;column-gap:.6mm}
+.n-item{display:flex;flex-direction:column;align-items:center;gap:.55mm;border-radius:1.2mm;padding:.5mm 0 .8mm;min-width:0}
+.n-item.on{background:#f1f2f4}
+.n-lab{font-size:5.6pt;font-weight:600;line-height:1.05;text-align:center;white-space:pre-line;min-height:2.6mm;color:#2b2f36}
+.n-item.on .n-lab{color:#000;font-weight:700}
+.n-sq{width:2.8mm;height:2.8mm;box-sizing:border-box;border:.35mm solid #2b2f36;border-radius:.6mm;position:relative;background:#fff;flex:none}
+.n-sq.on::before,.n-sq.on::after{content:"";position:absolute;left:50%;top:50%;width:3.1mm;height:.45mm;border-radius:.2mm;background:#000}
+.n-sq.on::before{transform:translate(-50%,-50%) rotate(45deg)}
+.n-sq.on::after{transform:translate(-50%,-50%) rotate(-45deg)}
+.n-ci{width:2.9mm;height:2.9mm;box-sizing:border-box;border:.35mm solid #2b2f36;border-radius:50%;background:#fff;flex:none}
+.n-ci.on{background:#000;border-color:#000}
+.n-ref{position:absolute;right:2.8mm;bottom:1.2mm;font-size:4.4pt;color:#8a9099;font-weight:500}
 
 /* ---------- Terrain (phone) view ---------- */
 #terrain{display:none;max-width:560px;margin:0 auto;padding:0 0 90px}
@@ -226,7 +230,7 @@ button.wa:hover{background:#0e6b0e!important}
 </style>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600;700&family=Inter+Tight:wght@500;600;700&display=swap">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -446,25 +450,28 @@ function drawTable(){ try{ paintType(); }catch(e){}
   document.getElementById("list").innerHTML=ppl.map(p=>`<tr id="r${p.idx}" class="${errOf(p)?"badr":"okr"}">${rowHTML(p)}</tr>`).join(""); }
 function drawRow(i){ const tr=document.getElementById("r"+i); if(tr){ tr.innerHTML=rowHTML(ppl[i]); tr.className=errOf(ppl[i])?"badr":"okr"; } }
 
+const BADGE_LOGO='<svg viewBox="0 0 100 120" aria-label="Sulimet"><path fill="#e10012" d="M50 10 L93.3 35 L93.3 59 L50 34 L39.6 40 L93.3 71 L93.3 85 L50 110 L6.7 85 L6.7 61 L50 86 L60.4 80 L6.7 49 L6.7 35 Z"/><path fill="rgba(255,255,255,.16)" d="M50 10 L6.7 35 L6.7 49 L39.6 40 L50 34 Z"/></svg>';
 function badge(p){
   const F=document.getElementById("ctype").value==="F";
   const card=CARDS[p.s.proj], on=new Set(p.s.postes.filter(Boolean).map(Number));
   let n=0;
-  const grid=card.rows.map(row=>`<div class="b-grid" style="grid-template-columns:repeat(${card.cols},1fr)">`+
-    row.map(c=>{const o=on.has(n++)?"on":"";return `<div class="b-item"><div class="b-lab">${esc(c)}</div><div class="b-marks"><div class="sq ${o}"></div>${F?"":`<div class="ci ${o}"></div>`}</div></div>`}).join("")+`</div>`).join("");
-  return `<div class="badge">
-    <div class="b-top"><div class="b-photo"></div>
-      <div class="b-id">
-        <div><span class="l">Matricule</span><span class="v">${esc(p.mat)}</span></div>
-        <div><span class="l">Nom / Prén.</span><span class="v name" style="font-size:${p.nom.length>28?5.6:p.nom.length>22?6.6:p.nom.length>18?7.6:8.5}pt">${esc(p.nom)}</span></div>
-        ${F?`<div class="band">EN COURS DE FORMATION</div>`:`<div class="gap"></div>`}
-        <div><span class="l">Date Expiration</span><span class="v">${fmt(p.date)}</span></div>
-      </div></div>
-    ${F?"":`<div class="b-T">T</div>`}
-    <div class="b-line"></div>
-    <div class="b-leg">${F?`<span class="lg"><i class="sq on"></i>Formation</span>`:`<span class="lg"><i class="sq on"></i>Aptitude</span><span class="lg"><i class="ci on"></i>Formation</span>`}</div>
-    <div class="b-rows">${grid}</div>
-    <div class="b-ref">${card.ref}</div></div>`;
+  const grid=card.rows.map(row=>`<div class="n-grid" style="grid-template-columns:repeat(${card.cols},1fr)">`+
+    row.map(c=>{const o=on.has(n++)?"on":"";return `<div class="n-item ${o}"><div class="n-lab">${esc(c)}</div><div class="n-sq ${o}"></div>${F?"":`<div class="n-ci ${o}"></div>`}</div>`}).join("")+`</div>`).join("");
+  const nameSize=p.nom.length>32?6.4:p.nom.length>26?7.4:p.nom.length>21?8.2:9;
+  const photo=(window.PHOTOS&&PHOTOS[p.mat])?`<img src="${PHOTOS[p.mat]}" alt="">`:`<span>PHOTO</span>`;
+  return `<div class="badge${F?" form":""}">
+    <div class="n-top"><div class="n-photo">${photo}</div>
+      <div class="n-id">
+        <div class="n-f"><span class="n-l">Matricule</span><span class="n-v mono">${esc(p.mat)}</span></div>
+        <div class="n-f"><span class="n-l">Nom / Prénom</span><span class="n-v" style="font-size:${nameSize}pt">${esc(p.nom)}</span></div>
+        <div class="n-f"><span class="n-l">Date d'expiration</span><span class="n-v mono">${fmt(p.date)}</span></div>
+      </div>
+      <div class="n-logo">${BADGE_LOGO}</div></div>
+    ${F?`<div class="n-band">En cours de formation</div>`:""}
+    <div class="n-line"></div>
+    <div class="n-leg">${F?`<span><i class="n-sq on"></i>Formation</span>`:`<span><i class="n-sq on"></i>Aptitude</span><span><i class="n-ci on"></i>Formation</span>`}<b>${esc(p.s.proj)}</b></div>
+    <div class="n-rows">${grid}</div>
+    <div class="n-ref">${card.ref}</div></div>`;
 }
 // ---------- PDF: one A4 page per 8 badges ----------
 const isPhone=()=>/Android|iPhone|iPad/i.test(navigator.userAgent);
