@@ -351,7 +351,7 @@ function buildList(){
     if(c.length===1){ const m=c[0].match(/^(\S+)\s+(.+)$/); c=m?[m[1],m[2]]:[c[0],""]; }   // pasted without tab
     const mat=c[0]||"";
     if(!saved[mat]) saved[mat]={proj:dp, postes:[""]};
-    return {idx, mat, nom:(c[1]||"").toUpperCase(), date:def, s:saved[mat]};
+    return {idx, mat, nom:c.slice(1).filter(Boolean).join(" ").replace(/\s+/g," ").trim().toUpperCase(), date:def, s:saved[mat]};
   });
   drawTable(); renderCards();
 }
