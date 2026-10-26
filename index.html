@@ -96,6 +96,8 @@ button{display:inline-flex;align-items:center;justify-content:center}
 .outhead{font-size:13px;font-weight:600;color:var(--muted)}
 .outbtns{margin:8px 0 0}
 button.wab{color:var(--ok)} button.wab:hover{background:var(--oksoft)}
+button.mxb{background:var(--ink);color:#fff;box-shadow:none} button.mxb:hover{background:#333}
+.mxfile{margin:2px 0 0;font-size:12.5px}.mxfile a{color:var(--blue);cursor:pointer}
 button.mailb{color:var(--blue)} button.mailb:hover{background:var(--bluesoft)}
 /* iPhone zooms on fields under 16px: keep them at 16px on phones */
 @media screen and (max-width:700px){ input,select,textarea,td select{font-size:16px!important} }
@@ -227,6 +229,7 @@ button.wa:hover{background:#0e6b0e!important}
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600;700&display=swap">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 </head>
 <body>
 <div class="aurora" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
@@ -272,7 +275,8 @@ button.wa:hover{background:#0e6b0e!important}
       <button class="pdfb mailb" onclick="pdfAction('email')"><svg class="ic" viewBox="0 0 20 20" aria-hidden="true"><rect x="2.8" y="4.5" width="14.4" height="11" rx="1.8" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M3.5 5.5l6.5 5 6.5-5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>Envoyer par email</button>
       <button onclick="window.print()"><svg class="ic" viewBox="0 0 20 20" aria-hidden="true"><path d="M6 7V3h8v4M6 14H4a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1h-2M6 11h8v6H6z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>Imprimer directement</button>
     </div>
-    <div class="row outbtns listrow"><button class="wab" onclick="sendList()"><svg class="ic" viewBox="0 0 20 20" aria-hidden="true"><path d="M7 5h10M7 10h10M7 15h10" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><circle cx="3.6" cy="5" r="1.1" fill="currentColor"/><circle cx="3.6" cy="10" r="1.1" fill="currentColor"/><circle cx="3.6" cy="15" r="1.1" fill="currentColor"/></svg>Envoyer la liste (WhatsApp)</button></div>
+    <div class="row outbtns listrow"><button class="wab" onclick="sendList()"><svg class="ic" viewBox="0 0 20 20" aria-hidden="true"><path d="M7 5h10M7 10h10M7 15h10" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><circle cx="3.6" cy="5" r="1.1" fill="currentColor"/><circle cx="3.6" cy="10" r="1.1" fill="currentColor"/><circle cx="3.6" cy="15" r="1.1" fill="currentColor"/></svg>Envoyer la liste (WhatsApp)</button><button class="mxb" id="mxBtn" onclick="addToMatrix()"><svg class="ic" viewBox="0 0 20 20" aria-hidden="true"><rect x="2.8" y="3.5" width="14.4" height="13" rx="1.6" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M2.8 8h14.4M8 8v8.5" stroke="currentColor" stroke-width="1.6"/><path d="M12.5 10.5v4M10.5 12.5h4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>Ajouter à la matrice</button></div>
+    <p class="hint mxfile" id="mxFile"></p>
     <p class="hint" id="pdfMsg" style="margin:4px 0 0"></p>
   </div>
 </section>
@@ -518,6 +522,129 @@ function listText(){
     return [p.mat,p.nom,p.s.proj,codes].join(" | "); });
   return {n:ok.length, text:"Retour terrain\n#BADGES "+t+" "+d+"\n"+lines.join("\n")};
 }
+// ===================== Ajouter à la matrice =====================
+// Writes Matricule / Nom / Équipe into the first empty lines of "MP CORRIGÉ" (the lines are already
+// formatted in the file), and adds every line to the sheet "Ajouts outil" (history with ticked boxes).
+// Only the cells we fill are changed inside the file: charts, formulas, colours and other sheets stay as they are.
+const MX_SHEET=/^MP CORRIG/i, LOG_NAME="Ajouts outil";
+const xesc=t=>String(t??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+const colNum=c=>c.split("").reduce((n,ch)=>n*26+ch.charCodeAt(0)-64,0);
+const colLet=n=>{let s="";while(n>0){const m=(n-1)%26;s=String.fromCharCode(65+m)+s;n=Math.floor((n-1)/26);}return s;};
+const strCell=(ref,s,t)=>`<c r="${ref}"${s?` s="${s}"`:""} t="inlineStr"><is><t xml:space="preserve">${xesc(t)}</t></is></c>`;
+const numCell=(ref,s,v)=>`<c r="${ref}"${s?` s="${s}"`:""}><v>${v}</v></c>`;
+function relTarget(rels,id){ const m=rels.match(new RegExp(`<Relationship[^>]*Id="${id}"[^>]*>`)); if(!m) return null;
+  let t=m[0].match(/Target="([^"]+)"/)[1]; return t.startsWith("/")?t.slice(1):"xl/"+t.replace(/^\.\//,""); }
+function sharedStrings(xml){ if(!xml) return []; const out=[]; const re=/<si>([\s\S]*?)<\/si>/g; let m;
+  while((m=re.exec(xml))) out.push([...m[1].matchAll(/<t[^>]*>([\s\S]*?)<\/t>/g)].map(x=>x[1]).join("")); return out; }
+function cellsOf(rowXml){ const out={}; const re=/<c r="([A-Z]+)\d+"([^>]*?)(\/>|>([\s\S]*?)<\/c>)/g; let m;
+  while((m=re.exec(rowXml))) out[m[1]]={xml:m[0],attrs:m[2],inner:m[4]||""}; return out; }
+function cellText(c,ss){ if(!c) return ""; const v=c.inner.match(/<v>([\s\S]*?)<\/v>/); const is=c.inner.match(/<t[^>]*>([\s\S]*?)<\/t>/);
+  if(/t="s"/.test(c.attrs)&&v) return ss[+v[1]]||""; if(is) return is[1]; return v?v[1]:""; }
+function setCell(rowXml,ref,newCell){ const col=ref.match(/^[A-Z]+/)[0];
+  const re=new RegExp(`<c r="${ref}"[^>]*?(\\/>|>[\\s\\S]*?<\\/c>)`); if(re.test(rowXml)) return rowXml.replace(re,newCell);
+  // cell missing: insert it in column order
+  const open=rowXml.match(/^<row[^>]*>/)[0]; let body=rowXml.slice(open.length,-6), done=false;
+  body=body.replace(/<c r="([A-Z]+)\d+"/g,(all,c)=>{ if(!done&&colNum(c)>colNum(col)){done=true;return newCell+all;} return all; });
+  if(!done) body+=newCell; return open+body+"</row>"; }
+
+async function updateMatrixFile(buf, people, meta){
+  const zip=await JSZip.loadAsync(buf);
+  const wbXml=await zip.file("xl/workbook.xml").async("string");
+  const rels=await zip.file("xl/_rels/workbook.xml.rels").async("string");
+  const ss=sharedStrings(zip.file("xl/sharedStrings.xml")?await zip.file("xl/sharedStrings.xml").async("string"):"");
+  const sheets=[...wbXml.matchAll(/<sheet [^>]*name="([^"]+)"[^>]*r:id="([^"]+)"[^>]*\/>/g)].map(m=>({name:m[1].replace(/&amp;/g,"&"),id:m[2]}));
+  const mx=sheets.find(x=>MX_SHEET.test(x.name)); if(!mx) throw {msg:"Feuille « MP CORRIGÉ » introuvable dans ce fichier."};
+  const mxPath=relTarget(rels,mx.id); let xml=await zip.file(mxPath).async("string");
+
+  // read the list of operators (rows from 8 to the "Couverture" totals line)
+  const rows={}; for(const m of xml.matchAll(/<row r="(\d+)"[^>]*?(?:\/>|>[\s\S]*?<\/row>)/g)) rows[+m[1]]=m[0];
+  const nums=Object.keys(rows).map(Number).sort((a,b)=>a-b);
+  let tot=null, last=7; const existing=new Set();
+  for(const n of nums){ if(n<8) continue; const c=cellsOf(rows[n]); const b=cellText(c.B,ss).trim();
+    if(/^Couverture/i.test(b)){ tot=n; break; }
+    if(b){ last=n; existing.add(String(parseInt(b,10))); } }
+  if(!tot) throw {msg:"Ligne des totaux « Couverture de l'activité » introuvable."};
+  // empty, already formatted lines after the last operator (they must have the Matricule cell)
+  const free=[]; for(let n=last+1;n<tot;n++){ const rx=rows[n]; if(rx && /<c r="B\d+"/.test(rx) && !cellText(cellsOf(rx).B,ss).trim() && !cellText(cellsOf(rx).C,ss).trim()) free.push(n); else break; }
+  const toAdd=people.filter(p=>!existing.has(String(parseInt(p.mat,10))));
+  const already=people.filter(p=>existing.has(String(parseInt(p.mat,10))));
+  if(toAdd.length>free.length) throw {msg:`Il reste ${free.length} ligne(s) vide(s) dans la matrice, il en faut ${toAdd.length}. Dans Excel : clic droit sur la ligne ${last+1} → Insérer, pour ajouter des lignes vides avant les totaux. Rien n'a été modifié.`, need:true};
+  toAdd.forEach((p,i)=>{ const n=free[i]; let rx=rows[n]; const c=cellsOf(rx);
+    const sty=k=>{ const m=(c[k]?.attrs||"").match(/s="(\d+)"/); return m?m[1]:""; };
+    rx=setCell(rx,"B"+n,numCell("B"+n,sty("B"),parseInt(p.mat,10)));
+    rx=setCell(rx,"C"+n,strCell("C"+n,sty("C"),p.nom));
+    rx=setCell(rx,"D"+n,strCell("D"+n,sty("D"),p.s.proj));
+    xml=xml.replace(rows[n],rx); rows[n]=rx; });
+  zip.file(mxPath,xml);
+
+  // history sheet "Ajouts outil" (created the first time)
+  const head=["Date ajout","Matricule","Nom & Prénom","Projet","Type de carte","Date expiration","Postes et formations cochés","Statut"];
+  const lines=people.map(p=>{ const all=CARDS[p.s.proj].rows.flat();
+    const codes=p.s.postes.filter(Boolean).map(Number).sort((a,b)=>a-b).map(j=>label(all[j])).join(", ");
+    return [meta.today,p.mat,p.nom,p.s.proj,meta.type,meta.exp,codes,already.includes(p)?"Déjà dans la matrice":"Ajouté à la matrice"]; });
+  const rowXml=(n,vals)=>`<row r="${n}">`+vals.map((v,j)=>j===1&&/^\d+$/.test(v)?numCell(colLet(j+1)+n,"",v):strCell(colLet(j+1)+n,"",v)).join("")+`</row>`;
+  const lg=sheets.find(x=>x.name===LOG_NAME);
+  if(lg){
+    const lp=relTarget(rels,lg.id); let lx=await zip.file(lp).async("string");
+    const lastRow=Math.max(0,...[...lx.matchAll(/<row r="(\d+)"/g)].map(m=>+m[1]));
+    const add=lines.map((v,i)=>rowXml(lastRow+1+i,v)).join("");
+    lx=/<sheetData\s*\/>/.test(lx)? lx.replace(/<sheetData\s*\/>/,`<sheetData>${add}</sheetData>`) : lx.replace("</sheetData>",add+"</sheetData>");
+    zip.file(lp,lx);
+  } else {
+    const files=Object.keys(zip.files).filter(f=>/^xl\/worksheets\/sheet\d+\.xml$/.test(f)).map(f=>+f.match(/(\d+)\.xml/)[1]);
+    const nf=Math.max(0,...files)+1, path=`xl/worksheets/sheet${nf}.xml`;
+    const rid="rId"+(Math.max(0,...[...rels.matchAll(/Id="rId(\d+)"/g)].map(m=>+m[1]))+1);
+    const sid=Math.max(0,...[...wbXml.matchAll(/sheetId="(\d+)"/g)].map(m=>+m[1]))+1;
+    const widths=[12,11,30,9,24,15,45,22];
+    const sheetXml=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews><sheetFormatPr defaultRowHeight="15"/><cols>${widths.map((w,i)=>`<col min="${i+1}" max="${i+1}" width="${w}" customWidth="1"/>`).join("")}</cols><sheetData>${rowXml(1,head)}${lines.map((v,i)=>rowXml(2+i,v)).join("")}</sheetData><pageMargins left="0.7" right="0.7" top="0.75" bottom="0.75" header="0.3" footer="0.3"/></worksheet>`;
+    zip.file(path,sheetXml);
+    zip.file("xl/workbook.xml",wbXml.replace("</sheets>",`<sheet name="${LOG_NAME}" sheetId="${sid}" r:id="${rid}"/></sheets>`));
+    zip.file("xl/_rels/workbook.xml.rels",rels.replace("</Relationships>",`<Relationship Id="${rid}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${nf}.xml"/></Relationships>`));
+    const ct=await zip.file("[Content_Types].xml").async("string");
+    zip.file("[Content_Types].xml",ct.replace("</Types>",`<Override PartName="/${path}" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/></Types>`));
+  }
+  // rebuild the package with files only (no folder entries), same order as before
+  const pack=new JSZip();
+  for(const name of Object.keys(zip.files)){ const f=zip.files[name]; if(f.dir) continue; pack.file(name, await f.async("uint8array"), {date:f.date, createFolders:false}); }
+  const out=await pack.generateAsync({type:"blob",compression:"DEFLATE",mimeType:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
+  return {blob:out, added:toAdd, already, rows:toAdd.map((p,i)=>free[i]), left:free.length-toAdd.length};
+}
+
+// the matrix file is chosen once, then remembered (Edge / Chrome on PC)
+const MXDB="sulimet_badges", MXKEY="matrice";
+function idb(){ return new Promise((res,rej)=>{ const o=indexedDB.open(MXDB,1); o.onupgradeneeded=()=>o.result.createObjectStore("h"); o.onsuccess=()=>res(o.result); o.onerror=()=>rej(o.error); }); }
+async function getHandle(){ try{ const d=await idb(); return await new Promise(r=>{ const q=d.transaction("h").objectStore("h").get(MXKEY); q.onsuccess=()=>r(q.result||null); q.onerror=()=>r(null); }); }catch(e){ return null; } }
+async function setHandle(h){ try{ const d=await idb(); d.transaction("h","readwrite").objectStore("h").put(h,MXKEY); }catch(e){} }
+async function pickMatrix(){ const [h]=await window.showOpenFilePicker({types:[{description:"Matrice Excel",accept:{"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":[".xlsx"]}}]}); await setHandle(h); showMxFile(h); return h; }
+async function showMxFile(h){ h=h||await getHandle(); const el=document.getElementById("mxFile"); if(!el) return;
+  el.innerHTML= h? `Matrice : <b>${esc(h.name)}</b> · <a onclick="pickMatrix()">changer</a>` : ""; }
+async function addToMatrix(){
+  const msg=document.getElementById("pdfMsg"), btn=document.getElementById("mxBtn");
+  if(!window.showOpenFilePicker||!window.JSZip){ msg.innerHTML='<span class="err">Ce bouton fonctionne dans Edge ou Chrome sur PC, avec internet.</span>'; return; }
+  const ok=ppl.filter(p=>!errOf(p)); if(!ok.length){ msg.innerHTML='<span class="err">Aucune personne prête.</span>'; return; }
+  btn.disabled=true;
+  try{
+    let h=await getHandle();
+    if(h && (await h.queryPermission({mode:"readwrite"}))!=="granted" && (await h.requestPermission({mode:"readwrite"}))!=="granted") h=null;
+    if(!h) h=await pickMatrix();
+    if((await h.queryPermission({mode:"readwrite"}))!=="granted" && (await h.requestPermission({mode:"readwrite"}))!=="granted") throw {msg:"Autorisation refusée : la matrice n'a pas été modifiée."};
+    msg.textContent="Ajout dans la matrice…";
+    const t=document.getElementById("ctype").value;
+    const meta={today:fmt(new Date()), type:t==="F"?"Formation en cours (1 mois)":"Qualification (1 an)", exp:fmt(parseDate(document.getElementById("defDate").value))};
+    const res=await updateMatrixFile(await (await h.getFile()).arrayBuffer(), ok, meta);
+    let w; try{ w=await h.createWritable(); }catch(e){ throw {msg:"La matrice est ouverte dans Excel : fermez-la, puis recliquez. Rien n'a été modifié."}; }
+    await w.write(res.blob); await w.close();
+    let txt=`${res.added.length} personne(s) ajoutée(s) dans « MP CORRIGÉ »`+(res.rows.length?` (lignes ${res.rows[0]} à ${res.rows[res.rows.length-1]})`:"")+`. Historique noté dans « ${LOG_NAME} ».`;
+    if(res.already.length) txt+=` Déjà dans la matrice : ${res.already.map(p=>p.mat).join(", ")}.`;
+    if(res.left<20) txt+=` Attention : plus que ${res.left} ligne(s) vide(s) dans la matrice.`;
+    msg.innerHTML=`<span class="ok">${esc(txt)}</span>`;
+  }catch(e){
+    if(e&&e.name==="AbortError"){ msg.textContent=""; }
+    else msg.innerHTML=`<span class="err">${esc(e&&e.msg?e.msg:"Erreur : la matrice n'a pas été modifiée. ("+(e&&e.message||e)+")")}</span>`;
+  }finally{ btn.disabled=false; }
+}
+if(!window.showOpenFilePicker){ const b=document.getElementById("mxBtn"); if(b) b.style.display="none"; } else showMxFile();
+
 function sendList(){
   const msg=document.getElementById("pdfMsg"), L=listText();
   if(!L.n){ msg.innerHTML='<span class="err">Aucune personne prête à envoyer.</span>'; return; }
