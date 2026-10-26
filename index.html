@@ -102,6 +102,7 @@ button.mailb{color:var(--blue)} button.mailb:hover{background:var(--bluesoft)}
 /* iPhone zooms on fields under 16px: keep them at 16px on phones */
 @media screen and (max-width:700px){ input,select,textarea,td select{font-size:16px!important} }
 @media screen and (max-width:700px){ .row.outbtns button{flex:1 1 100%!important;justify-content:flex-start;padding:12px 16px} }
+.photorow{margin:6px 0 4px}
 .plabel{font-size:12.5px;font-weight:600;color:var(--muted);margin:4px 0 8px;text-align:center}
 .empty{color:var(--muted);font-size:13.5px;text-align:center;padding:26px;border:1.5px dashed rgba(15,108,189,.35);border-radius:var(--r)}
 
@@ -263,6 +264,7 @@ button.wa:hover{background:#0e6b0e!important}
     <label>Date expiration : <input type="date" id="defDate" onchange="buildList()"></label>
     <label><b>Projet pour toute la promo :</b> <select id="defProj" onchange="setAllProj(this.value)"><option value="">— choisir —</option></select></label>
   </div>
+  <div class="row photorow"><button onclick="document.getElementById('phFile').click()"><svg class="ic" viewBox="0 0 20 20" aria-hidden="true"><rect x="2.8" y="4.5" width="14.4" height="11.5" rx="1.8" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="10" cy="10.3" r="2.8" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M7 4.5l1.2-1.8h3.6L13 4.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>Photos (PDF de la paie)</button><input type="file" id="phFile" accept="application/pdf" hidden onchange="loadPhotos(this)"><span class="hint" id="phMsg" style="margin:0"></span></div>
   <div class="row sendrow"><button class="wa" onclick="sendToField()"><svg class="ic" viewBox="0 0 20 20" aria-hidden="true"><rect x="5.5" y="2.5" width="9" height="15" rx="1.8" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M9 15h2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>Envoyer au terrain (WhatsApp)</button></div>
   <div id="sendOut"></div>
 </section>
@@ -651,6 +653,75 @@ async function addToMatrix(){
   }finally{ btn.disabled=false; }
 }
 if(!window.showOpenFilePicker){ const b=document.getElementById("mxBtn"); if(b) b.style.display="none"; } else showMxFile();
+
+// ===================== Photos from the payroll badges PDF =====================
+// The payroll PDF (made in Excel) holds, for each person, a photo image next to the text "Matricule: 5075".
+// The tool renders each page, finds where every image is drawn, and crops the photo that sits above each
+// "Nom:" line of the same badge. Photos stay in this browser only (nothing is sent anywhere).
+window.PHOTOS=window.PHOTOS||{};
+const PDFJS_URL="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
+const PDFJS_WORKER="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+function loadScript(src){ return new Promise((res,rej)=>{ const t=document.createElement("script"); t.src=src; t.onload=res; t.onerror=()=>rej(new Error("load")); document.head.appendChild(t); }); }
+const mmul=(m,n)=>[m[0]*n[0]+m[2]*n[1], m[1]*n[0]+m[3]*n[1], m[0]*n[2]+m[2]*n[3], m[1]*n[2]+m[3]*n[3], m[0]*n[4]+m[2]*n[5]+m[4], m[1]*n[4]+m[3]*n[5]+m[5]];
+async function pdfPhotos(buf){
+  if(!window.pdfjsLib){ await loadScript(PDFJS_URL); }
+  pdfjsLib.GlobalWorkerOptions.workerSrc=PDFJS_WORKER;
+  const pdf=await pdfjsLib.getDocument({data:buf}).promise, OPS=pdfjsLib.OPS, out=[];
+  for(let pn=1;pn<=pdf.numPages;pn++){
+    const page=await pdf.getPage(pn);
+    // 1. where each image is drawn (PDF units, origin bottom-left)
+    const ol=await page.getOperatorList(); let ctm=[1,0,0,1,0,0]; const stack=[], imgs=[];
+    for(let i=0;i<ol.fnArray.length;i++){ const f=ol.fnArray[i], a=ol.argsArray[i];
+      if(f===OPS.save) stack.push(ctm.slice());
+      else if(f===OPS.restore) ctm=stack.pop()||[1,0,0,1,0,0];
+      else if(f===OPS.transform) ctm=mmul(ctm,a);
+      else if(f===OPS.paintFormXObjectBegin){ stack.push(ctm.slice()); if(a&&a[0]) ctm=mmul(ctm,a[0]); }
+      else if(f===OPS.paintFormXObjectEnd) ctm=stack.pop()||[1,0,0,1,0,0];
+      else if(f===OPS.paintImageXObject||f===OPS.paintInlineImageXObject||f===OPS.paintImageXObjectRepeat||f===OPS.paintJpegXObject){
+        const xs=[ctm[4],ctm[4]+ctm[0],ctm[4]+ctm[2],ctm[4]+ctm[0]+ctm[2]], ys=[ctm[5],ctm[5]+ctm[1],ctm[5]+ctm[3],ctm[5]+ctm[1]+ctm[3]];
+        const r={x1:Math.min(...xs),x2:Math.max(...xs),y1:Math.min(...ys),y2:Math.max(...ys)}; r.w=r.x2-r.x1; r.h=r.y2-r.y1;
+        if(r.w>8&&r.h>8) imgs.push(r); } }
+    // 2. text lines: "Nom: ..." and "Matricule: 1234"
+    const tc=await page.getTextContent(), lines={};
+    for(const it of tc.items){ if(!it.str.trim()) continue; const y=Math.round(it.transform[5]), x=it.transform[4];
+      const key=Object.keys(lines).find(k=>Math.abs(k-y)<=2&&Math.abs(lines[k].x-x)<160)||y; (lines[key]=lines[key]||{x,y,parts:[]}).parts.push({x,s:it.str}); }
+    const rows=Object.values(lines).map(l=>({x:l.x,y:l.y,txt:l.parts.sort((a,b)=>a.x-b.x).map(p=>p.s).join(" ").replace(/\s+/g," ").trim()}));
+    const mats=rows.filter(r=>/Matricule\s*:?\s*\d+/i.test(r.txt)).sort((a,b)=>b.y-a.y||a.x-b.x);   // top to bottom, like the PDF
+    // 3. render the page once, then crop each photo
+    const vp=page.getViewport({scale:3}), cv=document.createElement("canvas"); cv.width=vp.width; cv.height=vp.height;
+    await page.render({canvasContext:cv.getContext("2d"),viewport:vp}).promise;
+    for(const m of mats){
+      const mat=String(parseInt(m.txt.match(/Matricule\s*:?\s*(\d+)/i)[1],10));
+      const nomRow=rows.filter(r=>/^Nom\s*:/i.test(r.txt)&&r.y>=m.y&&Math.abs(r.x-m.x)<30).sort((a,b)=>a.y-b.y)[0];
+      const nom=nomRow? nomRow.txt.replace(/^Nom\s*:\s*/i,"").trim().toUpperCase() : "";
+      const topY=(nomRow||m).y;
+      // the photo: a not-too-wide image, above the "Nom" line of this badge, overlapping the badge horizontally
+      const cand=imgs.filter(r=>r.y1>=topY-2 && r.y1-topY<45 && r.w/r.h<2 && r.h/r.w<2 && r.x2>m.x-10 && r.x1<m.x+260)
+                     .sort((a,b)=>(a.y1-topY)-(b.y1-topY) || b.w*b.h-a.w*a.h);
+      const ph=cand[0]; if(!ph) { out.push({mat,nom,img:null}); continue; }
+      const [cx1,cy1,cx2,cy2]=vp.convertToViewportRectangle([ph.x1,ph.y1,ph.x2,ph.y2]);
+      const x=Math.min(cx1,cx2), y=Math.min(cy1,cy2), w=Math.abs(cx2-cx1), h=Math.abs(cy2-cy1);
+      const c2=document.createElement("canvas"); c2.width=Math.round(w); c2.height=Math.round(h);
+      c2.getContext("2d").drawImage(cv,x,y,w,h,0,0,c2.width,c2.height);
+      out.push({mat,nom,img:c2.toDataURL("image/jpeg",0.9)});
+    }
+  }
+  return out;
+}
+async function loadPhotos(inp){
+  const f=inp.files[0], msg=document.getElementById("phMsg"); if(!f) return; inp.value="";
+  msg.textContent="Lecture du PDF…";
+  try{
+    const found=await pdfPhotos(await f.arrayBuffer());
+    found.forEach(x=>{ if(x.img) PHOTOS[x.mat]=x.img; });
+    const box=document.getElementById("paste");
+    if(!box.value.trim() && found.length){ box.value=found.map(x=>x.mat+"\t"+x.nom).join("\n"); buildList(); }
+    else renderCards();
+    const withImg=found.filter(x=>x.img).length, inList=ppl.filter(p=>PHOTOS[p.mat]).length;
+    msg.innerHTML= found.length ? `<span class="ok">${withImg} photo(s) trouvée(s) dans le PDF · ${inList} placée(s) sur les badges.</span>`
+                                : '<span class="err">Aucun matricule trouvé dans ce PDF.</span>';
+  }catch(e){ msg.innerHTML='<span class="err">Impossible de lire ce PDF (connexion internet nécessaire).</span>'; }
+}
 
 function sendList(){
   const msg=document.getElementById("pdfMsg"), L=listText();
